@@ -52,6 +52,15 @@ func (v Version) String() string {
 	return strings.Join(s, ".")
 }
 
+// Truncate returns the first n components of v, or v itself if it has n
+// components or fewer. Truncate(1) of 8.3.14 is 8, Truncate(2) is 8.3.
+func (v Version) Truncate(n int) Version {
+	if n >= len(v.parts) {
+		return v
+	}
+	return Version{parts: slices.Clone(v.parts[:max(n, 0)])}
+}
+
 // HasPrefix reports whether v starts with every component of prefix, so
 // 8.3.14 has the prefixes 8, 8.3 and 8.3.14 but not 8.31.
 func (v Version) HasPrefix(prefix Version) bool {

@@ -150,6 +150,75 @@ func TestLoadRejectsBadVersions(t *testing.T) {
 	}
 }
 
+const serviceRecipe = `
+name = "demo"
+kind = "service"
+
+[service]
+command   = "bin/demo"
+args      = ["--port", "{{.Ports.http}}"]
+ready     = "http"
+dirs      = ["logs"]
+templates = { "conf/demo.conf" = "demo.conf.tmpl" }
+
+[service.ports]
+http = 8080
+`
+
+func loadServiceRecipe(t *testing.T, recipe string, extra fstest.MapFS) (*Registry, error) {
+	t.Helper()
+	fsys := fstest.MapFS{
+		"demo/recipe.toml":    {Data: []byte(recipe)},
+		"demo/versions.json":  {Data: []byte(demoVersions)},
+		"demo/demo.conf.tmpl": {Data: []byte("listen {{.Ports.http}}\n")},
+	}
+	for name, file := range extra {
+		fsys[name] = file
+	}
+	return Load(fsys)
+}
+
+func TestLoadService(t *testing.T) {
+	r, err := loadServiceRecipe(t, serviceRecipe, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, _ := r.Package("demo")
+	s := p.Service
+	if s == nil {
+		t.Fatal("Service is nil")
+	}
+	if s.Command != "bin/demo" || s.Ports["http"] != 8080 || s.Ready != "http" {
+		t.Errorf("unexpected service %+v", s)
+	}
+	if got := s.Templates["conf/demo.conf"]; got != "listen {{.Ports.http}}\n" {
+		t.Errorf("template = %q", got)
+	}
+}
+
+func TestLoadServiceRejects(t *testing.T) {
+	tests := map[string]struct {
+		recipe string
+		extra  fstest.MapFS
+	}{
+		"service without table": {recipe: "name = \"demo\"\nkind = \"service\"\n"},
+		"runtime with table":    {recipe: strings.Replace(serviceRecipe, `"service"`, `"runtime"`, 1)},
+		"no command":            {recipe: strings.Replace(serviceRecipe, `"bin/demo"`, `""`, 1)},
+		"command outside":       {recipe: strings.Replace(serviceRecipe, `"bin/demo"`, `"../demo"`, 1)},
+		"ready not a port":      {recipe: strings.Replace(serviceRecipe, `ready     = "http"`, `ready = "smtp"`, 1)},
+		"invalid port":          {recipe: strings.Replace(serviceRecipe, "http = 8080", "http = 0", 1)},
+		"dir outside":           {recipe: strings.Replace(serviceRecipe, `["logs"]`, `["../logs"]`, 1)},
+		"missing template":      {recipe: strings.Replace(serviceRecipe, "demo.conf.tmpl", "nope.tmpl", 1)},
+		"bad template":          {recipe: serviceRecipe, extra: fstest.MapFS{"demo/demo.conf.tmpl": {Data: []byte("{{.Ports")}}},
+		"bad arg template":      {recipe: strings.Replace(serviceRecipe, "{{.Ports.http}}", "{{.Ports.http", 1)},
+	}
+	for name, tt := range tests {
+		if _, err := loadServiceRecipe(t, tt.recipe, tt.extra); err == nil {
+			t.Errorf("%s: Load succeeded, want an error", name)
+		}
+	}
+}
+
 func TestMarshalVersionsRoundTrip(t *testing.T) {
 	releases, err := ParseVersions([]byte(demoVersions))
 	if err != nil {

@@ -3,7 +3,8 @@ package recipes
 
 import "embed"
 
-// FS holds <name>/recipe.toml and <name>/versions.json for every package.
+// FS holds one directory per package with its recipe.toml, versions.json
+// and any template files the recipe refers to.
 //
-//go:embed */recipe.toml */versions.json
+//go:embed */*
 var FS embed.FS

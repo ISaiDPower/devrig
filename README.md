@@ -7,7 +7,7 @@ It comes in two flavours that share the same engine:
 - **DevRig**, a desktop app
 - **rig**, a command line tool
 
-> **Status:** early development. `rig` can install PHP on Windows. Everything else is still being built.
+> **Status:** early development. On Windows, `rig` can install PHP and run Mailpit and Nginx. Everything else is still being built.
 
 ## The idea
 
@@ -48,6 +48,22 @@ bin/rig install php@8.4
 ```
 
 Releases are installed under `%LOCALAPPDATA%\DevRig` (set `DEVRIG_HOME` to use another directory).
+
+Services run in the background, looked after by an agent that `rig` starts by itself:
+
+```sh
+bin/rig start mailpit nginx   # installs them first if needed
+bin/rig status
+bin/rig logs -f mailpit
+bin/rig stop --all
+```
+
+To use other ports, put them in `config.toml` in the DevRig directory:
+
+```toml
+[services.nginx.ports]
+http = 8080
+```
 
 The release lists in `recipes/*/versions.json` are generated. To refresh them from upstream, run:
 

@@ -10,10 +10,12 @@ import (
 	"io/fs"
 	"maps"
 	"path"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"slices"
 	"strings"
+	"text/template"
 
 	"github.com/BurntSushi/toml"
 
@@ -54,8 +56,33 @@ type Package struct {
 	Bin []string
 	// Strip is how many leading path components to drop from archive entries.
 	Strip int
+	// Service describes how to run the package. It is set for services only.
+	Service *Service
 
 	releases []Release // newest first
+}
+
+// Service describes how to run a service package. Args, Stop and Templates
+// are text/template templates. See the service package for the values they
+// can use.
+type Service struct {
+	// Command is the executable to run, relative to the release directory and
+	// without an extension.
+	Command string
+	// Args are the arguments to start the service with.
+	Args []string
+	// Stop, if set, are the arguments of a second invocation of Command that
+	// asks the service to shut down cleanly.
+	Stop []string
+	// Ports are the default ports, by name.
+	Ports map[string]int
+	// Ready names the port to wait for before the service counts as running.
+	Ready string
+	// Dirs are directories to create in the service directory.
+	Dirs []string
+	// Templates maps files to generate in the service directory to their
+	// template text.
+	Templates map[string]string
 }
 
 // Releases returns the releases that have an asset for platform, newest
@@ -141,6 +168,74 @@ type recipeFile struct {
 	Install  struct {
 		Strip int `toml:"strip"`
 	} `toml:"install"`
+	Service *serviceFile `toml:"service"`
+}
+
+type serviceFile struct {
+	Command   string            `toml:"command"`
+	Args      []string          `toml:"args"`
+	Stop      []string          `toml:"stop"`
+	Ports     map[string]int    `toml:"ports"`
+	Ready     string            `toml:"ready"`
+	Dirs      []string          `toml:"dirs"`
+	Templates map[string]string `toml:"templates"`
+}
+
+// loadService validates a [service] table and reads its template files from
+// the recipe directory.
+func loadService(fsys fs.FS, dir string, sf *serviceFile) (*Service, error) {
+	if sf.Command == "" || !filepath.IsLocal(filepath.FromSlash(sf.Command)) {
+		return nil, fmt.Errorf("service.command %q must be a path inside the release", sf.Command)
+	}
+	for name, port := range sf.Ports {
+		if port < 1 || port > 65535 {
+			return nil, fmt.Errorf("service.ports.%s: invalid port %d", name, port)
+		}
+	}
+	if _, ok := sf.Ports[sf.Ready]; sf.Ready != "" && !ok {
+		return nil, fmt.Errorf("service.ready %q is not one of the ports", sf.Ready)
+	}
+	for _, d := range sf.Dirs {
+		if !filepath.IsLocal(filepath.FromSlash(d)) {
+			return nil, fmt.Errorf("service.dirs: %q must be a relative path", d)
+		}
+	}
+
+	s := &Service{
+		Command:   sf.Command,
+		Args:      sf.Args,
+		Stop:      sf.Stop,
+		Ports:     sf.Ports,
+		Ready:     sf.Ready,
+		Dirs:      sf.Dirs,
+		Templates: make(map[string]string, len(sf.Templates)),
+	}
+	for dest, src := range sf.Templates {
+		if !filepath.IsLocal(filepath.FromSlash(dest)) {
+			return nil, fmt.Errorf("service.templates: %q must be a relative path", dest)
+		}
+		if path.Base(src) != src {
+			return nil, fmt.Errorf("service.templates: %q must be a file in the recipe directory", src)
+		}
+		data, err := fs.ReadFile(fsys, path.Join(dir, src))
+		if err != nil {
+			return nil, err
+		}
+		s.Templates[dest] = string(data)
+	}
+
+	// Parse every template now, so mistakes show up when recipes load rather
+	// than when a service starts.
+	texts := append(slices.Clone(s.Args), s.Stop...)
+	for _, text := range s.Templates {
+		texts = append(texts, text)
+	}
+	for _, text := range texts {
+		if _, err := template.New("").Parse(text); err != nil {
+			return nil, fmt.Errorf("service: %w", err)
+		}
+	}
+	return s, nil
 }
 
 func loadPackage(fsys fs.FS, dir string) (*Package, error) {
@@ -167,6 +262,17 @@ func loadPackage(fsys fs.FS, dir string) (*Package, error) {
 		return nil, fmt.Errorf("invalid kind %q", rf.Kind)
 	case rf.Install.Strip < 0:
 		return nil, fmt.Errorf("invalid install.strip %d", rf.Install.Strip)
+	case rf.Kind == KindService && rf.Service == nil:
+		return nil, errors.New("a service needs a [service] table")
+	case rf.Kind != KindService && rf.Service != nil:
+		return nil, fmt.Errorf("a %s cannot have a [service] table", rf.Kind)
+	}
+
+	var svc *Service
+	if rf.Service != nil {
+		if svc, err = loadService(fsys, dir, rf.Service); err != nil {
+			return nil, err
+		}
 	}
 
 	data, err = fs.ReadFile(fsys, path.Join(dir, "versions.json"))
@@ -184,6 +290,7 @@ func loadPackage(fsys fs.FS, dir string) (*Package, error) {
 		Homepage: rf.Homepage,
 		Bin:      rf.Bin,
 		Strip:    rf.Install.Strip,
+		Service:  svc,
 		releases: releases,
 	}, nil
 }

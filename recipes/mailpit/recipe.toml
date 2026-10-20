@@ -1,0 +1,17 @@
+name     = "mailpit"
+kind     = "service"
+homepage = "https://mailpit.axllent.org"
+bin      = ["mailpit"]
+
+[service]
+command = "mailpit"
+args    = [
+  "--smtp", "127.0.0.1:{{.Ports.smtp}}",
+  "--listen", "127.0.0.1:{{.Ports.http}}",
+  "--database", "{{.Data}}/mailpit.db",
+]
+ready = "smtp"
+
+[service.ports]
+smtp = 1025
+http = 8025

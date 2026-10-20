@@ -1,0 +1,19 @@
+name     = "nginx"
+kind     = "service"
+homepage = "https://nginx.org"
+bin      = ["nginx"]
+
+# The zip holds everything in an nginx-<version> directory.
+[install]
+strip = 1
+
+[service]
+command   = "nginx"
+args      = ["-p", "{{.State}}/", "-c", "conf/nginx.conf", "-e", "logs/error.log"]
+stop      = ["-p", "{{.State}}/", "-c", "conf/nginx.conf", "-e", "logs/error.log", "-s", "quit"]
+ready     = "http"
+dirs      = ["logs", "temp"]
+templates = { "conf/nginx.conf" = "nginx.conf.tmpl" }
+
+[service.ports]
+http = 80

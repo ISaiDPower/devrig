@@ -73,3 +73,30 @@ func (d Dir) Release(name, version string) string {
 func (d Dir) Downloads() string {
 	return filepath.Join(d.Root, "downloads")
 }
+
+// Service holds the generated config, logs and temporary files of one
+// service release.
+func (d Dir) Service(name, version string) string {
+	return filepath.Join(d.Root, "services", name, version)
+}
+
+// Data holds the data of a service, such as a database, for one major
+// version. It is kept when releases are upgraded or removed.
+func (d Dir) Data(name, major string) string {
+	return filepath.Join(d.Root, "data", name, major)
+}
+
+// Config is the machine wide DevRig configuration file.
+func (d Dir) Config() string {
+	return filepath.Join(d.Root, "config.toml")
+}
+
+// AgentLog is where the background agent writes its own log.
+func (d Dir) AgentLog() string {
+	return filepath.Join(d.Root, "agent.log")
+}
+
+// AgentSocket is the Unix socket the agent listens on outside Windows.
+func (d Dir) AgentSocket() string {
+	return filepath.Join(d.Root, "agent.sock")
+}

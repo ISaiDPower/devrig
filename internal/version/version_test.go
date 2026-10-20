@@ -45,6 +45,15 @@ func TestCompare(t *testing.T) {
 	}
 }
 
+func TestTruncate(t *testing.T) {
+	v := mustParse(t, "8.3.14")
+	for n, want := range map[int]string{1: "8", 2: "8.3", 3: "8.3.14", 5: "8.3.14", 0: ""} {
+		if got := v.Truncate(n).String(); got != want {
+			t.Errorf("Truncate(%d) = %q, want %q", n, got, want)
+		}
+	}
+}
+
 func TestHasPrefix(t *testing.T) {
 	v := mustParse(t, "8.3.14")
 	for _, p := range []string{"8", "8.3", "8.3.14"} {
