@@ -158,6 +158,8 @@ Upstream projects publish releases in very different ways. For example, windows.
 - an **updater** (Go code in this repo, run on a schedule by GitHub Actions) reads upstream, verifies what it can (checksums, PGP signatures) and opens a pull request with the new `versions.json` entries;
 - **`rig` only reads data.** It stays simple, works offline from the cache and never installs a checksum it has not seen in a reviewed recipe.
 
+Some upstreams only publish checksums for their newest builds. PHP for Windows, for example, lists only the newest patch release of each minor version. The registry therefore keeps every release once it has been seen, so a version pinned in a lock file stays installable after newer patches come out.
+
 A later step is signing the published index, so a compromised download host cannot change checksums.
 
 ### Delegated packages

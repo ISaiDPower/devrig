@@ -1,0 +1,8 @@
+name     = "php"
+kind     = "runtime"
+homepage = "https://www.php.net"
+bin      = ["php", "php-cgi"]
+
+# The Windows builds are zipped without a top level directory.
+[install]
+strip = 0
