@@ -1,0 +1,30 @@
+{
+  "1.31.7": {
+    "windows/amd64": {
+      "url": "https://github.com/nginx/nginx/releases/download/release-1.31.7/nginx-1.31.7.zip",
+      "sha256": "7c717ccf861f8925be64431d06d57634512a5014bcc8d149f279928f5e8151bf",
+      "size": 2795610
+    }
+  },
+  "1.30.6": {
+    "windows/amd64": {
+      "url": "https://github.com/nginx/nginx/releases/download/release-1.30.6/nginx-1.30.6.zip",
+      "sha256": "c6ee35edb0a861063323f709192ae50d1eefaf2ea7d00678bd2b22d8542dc61e",
+      "size": 2773293
+    }
+  },
+  "1.29.8": {
+    "windows/amd64": {
+      "url": "https://github.com/nginx/nginx/releases/download/release-1.29.8/nginx-1.29.8.zip",
+      "sha256": "9ed580804bb83dce0197fcb29f2372411c7369d8b9866f137135ccd547ad22de",
+      "size": 2768163
+    }
+  },
+  "1.28.3": {
+    "windows/amd64": {
+      "url": "https://github.com/nginx/nginx/releases/download/release-1.28.3/nginx-1.28.3.zip",
+      "sha256": "aad7bf75d669ece7671688bfdf35f1093d6a30d2e62469405f4d55d8d82d5fd3",
+      "size": 2743427
+    }
+  }
+}

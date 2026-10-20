@@ -43,6 +43,14 @@ type candidate struct {
 
 // sources lists the upstream release data for each package it can update.
 var sources = map[string]func(ctx context.Context) ([]candidate, error){
+	"mailpit": githubSource("axllent/mailpit", "v",
+		githubAsset{"windows/amd64", "mailpit-windows-amd64.zip"},
+		githubAsset{"windows/arm64", "mailpit-windows-arm64.zip"},
+	),
+	// nginx.org builds Windows as 32 bit, which runs on 64 bit Windows too.
+	"nginx": githubSource("nginx/nginx", "release-",
+		githubAsset{"windows/amd64", "nginx-{version}.zip"},
+	),
 	"php": phpReleases,
 }
 
@@ -174,6 +182,9 @@ func get(ctx context.Context, url string) (io.ReadCloser, error) {
 		return nil, err
 	}
 	req.Header.Set("User-Agent", userAgent)
+	if token := githubToken(); token != "" && req.URL.Host == "api.github.com" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
