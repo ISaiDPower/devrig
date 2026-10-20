@@ -1,9 +1,12 @@
 package cli
 
 import (
+	"context"
 	"fmt"
+	"os"
 	"strings"
 
+	"github.com/ISaiDPower/devrig/internal/agent"
 	"github.com/ISaiDPower/devrig/internal/buildinfo"
 	"github.com/ISaiDPower/devrig/internal/home"
 	"github.com/ISaiDPower/devrig/internal/install"
@@ -11,11 +14,17 @@ import (
 	"github.com/ISaiDPower/devrig/recipes"
 )
 
-// app is what the package commands work with.
+// app is what the package and service commands work with.
 type app struct {
+	home      home.Dir
 	registry  *registry.Registry
 	installer *install.Installer
 	platform  string
+
+	// agent returns a client for the agent, without starting one.
+	agent func() *agent.Client
+	// connect returns a client for the agent, starting it if needed.
+	connect func(ctx context.Context) (*agent.Client, error)
 }
 
 // loader builds the app lazily, so commands such as version never touch the
@@ -34,12 +43,21 @@ func loadApp() (*app, error) {
 	}
 
 	return &app{
+		home:     h,
 		registry: reg,
 		installer: &install.Installer{
 			Home:      h,
 			UserAgent: "devrig/" + buildinfo.Read().Version + " (+https://github.com/ISaiDPower/devrig)",
 		},
 		platform: registry.Platform(),
+		agent:    func() *agent.Client { return agent.NewClient(h) },
+		connect: func(ctx context.Context) (*agent.Client, error) {
+			exe, err := os.Executable()
+			if err != nil {
+				return nil, err
+			}
+			return agent.Connect(ctx, h, exe)
+		},
 	}, nil
 }
 

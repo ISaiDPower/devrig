@@ -196,6 +196,8 @@ Services are machine wide, not per project, the same way Laragon and Herd work:
 - **One instance per version.** If two projects need `mysql 8.4`, they share one instance. Different major versions get different ports.
 - **One web server owns ports 80 and 443** and serves every site. The MVP uses Nginx. Apache will run behind it for projects that need `.htaccess`.
 - **Mailpit** is a single shared instance.
+- **Ports** come from the recipe and can be changed per service in `config.toml` in the DevRig directory, for example `[services.nginx.ports]` with `http = 8080`.
+- **Process trees:** on Windows each service runs in a job object that the agent holds. Stopping a service, or the agent dying, ends the service together with every process it started, such as Nginx workers.
 - **`rig down`** stops a project's site and any service no other active project needs.
 
 ### PHP on Windows
@@ -235,7 +237,8 @@ rig use [-g] <pkg>@<ver>    pick a version for this project or globally
 rig which <command>         show which executable a shim resolves to
 rig start|stop|restart      control services
 rig status                  show services and sites
-rig logs <service>          follow service logs
+rig logs [-f] <service>     show or follow a service log
+rig agent run|stop          run the agent in the foreground, or stop it and every service
 rig update [pkg]            resolve versions again and rewrite devrig.lock
 rig doctor                  check PATH, shims, certificates, hosts and ports
 ```
