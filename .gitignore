@@ -1,0 +1,8 @@
+# Build output
+/bin/
+/dist/
+*.exe
+
+# Test output
+*.out
+*.test
