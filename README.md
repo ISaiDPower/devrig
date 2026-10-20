@@ -7,7 +7,7 @@ It comes in two flavours that share the same engine:
 - **DevRig**, a desktop app
 - **rig**, a command line tool
 
-> **Status:** early development. Nothing is usable yet.
+> **Status:** early development. `rig` can install PHP on Windows. Everything else is still being built.
 
 ## The idea
 
@@ -43,7 +43,16 @@ You need [Go](https://go.dev/dl/) (see `go.mod` for the version).
 
 ```sh
 go build -o bin/ ./cmd/rig
-bin/rig version
+bin/rig list --available
+bin/rig install php@8.4
+```
+
+Releases are installed under `%LOCALAPPDATA%\DevRig` (set `DEVRIG_HOME` to use another directory).
+
+The release lists in `recipes/*/versions.json` are generated. To refresh them from upstream, run:
+
+```sh
+go run ./tools/updater
 ```
 
 ## License

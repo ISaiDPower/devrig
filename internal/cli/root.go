@@ -11,10 +11,10 @@ import (
 
 // Execute runs rig with the process arguments.
 func Execute(ctx context.Context) error {
-	return newRootCmd().ExecuteContext(ctx)
+	return newRootCmd(loadApp).ExecuteContext(ctx)
 }
 
-func newRootCmd() *cobra.Command {
+func newRootCmd(load loader) *cobra.Command {
 	root := &cobra.Command{
 		Use:   "rig",
 		Short: "Native development environments, no containers",
@@ -24,7 +24,12 @@ func newRootCmd() *cobra.Command {
 		SilenceUsage: true,
 	}
 
-	root.AddCommand(newVersionCmd())
+	root.AddCommand(
+		newInstallCmd(load),
+		newUninstallCmd(load),
+		newListCmd(load),
+		newVersionCmd(),
+	)
 
 	return root
 }

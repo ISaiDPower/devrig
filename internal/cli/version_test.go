@@ -8,7 +8,7 @@ import (
 
 func TestVersionCommand(t *testing.T) {
 	var out bytes.Buffer
-	root := newRootCmd()
+	root := newRootCmd(loadApp)
 	root.SetOut(&out)
 	root.SetArgs([]string{"version"})
 
@@ -22,7 +22,7 @@ func TestVersionCommand(t *testing.T) {
 }
 
 func TestVersionCommandRejectsArgs(t *testing.T) {
-	root := newRootCmd()
+	root := newRootCmd(loadApp)
 	root.SetOut(&bytes.Buffer{})
 	root.SetErr(&bytes.Buffer{})
 	root.SetArgs([]string{"version", "extra"})
